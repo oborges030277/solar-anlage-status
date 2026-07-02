@@ -1,0 +1,66 @@
+# GitHub Pages deploy workflow for the PUBLIC status repo.
+#
+# This file does NOT belong to this repository's CI. It is the deploy
+# workflow that lives on the `gh-pages` branch of
+# `oborges030277/solar-anlage-status` (the public status snapshot repo).
+# A copy is kept here purely for version control + documentation.
+#
+# Why it exists: that repo's Pages source was switched from the legacy
+# "Deploy from a branch" builder to "GitHub Actions" (build_type=workflow)
+# on 2026-07-02, because the legacy builder started failing every build
+# (site stuck 3 h stale, one failure email per push). This workflow uploads
+# the branch content as a Pages artifact and deploys it via the official
+# actions — bypassing the broken legacy builder. Free for the public repo.
+#
+# The Pi's publisher pushes data.json/index.html/robots.txt/.nojekyll to
+# gh-pages every ~30 min; each push triggers this workflow. The publisher
+# never touches this file, so its `git add -A` carries it along unchanged
+# (a push that does not MODIFY a workflow file needs no `workflow` PAT
+# permission — verified against the Pi's fine-grained token).
+#
+# If gh-pages is ever squashed/reset again, re-add this file (the Pi's
+# token cannot create/modify workflow files itself).
+
+name: Deploy status page to Pages
+
+on:
+  push:
+    branches: [gh-pages]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deploy; do NOT cancel an in-progress run, so a
+# queued deploy finishes cleanly instead of erroring (the failure mode we
+# left behind).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+      - name: Assemble site (exclude VCS + workflow dir)
+        run: |
+          mkdir -p _site
+          find . -maxdepth 1 -mindepth 1 \
+            ! -name .git ! -name .github ! -name _site \
+            -exec cp -r {} _site/ \;
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
