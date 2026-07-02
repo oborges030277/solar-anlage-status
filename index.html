@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex,nocache">
+<meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Solaranlage</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{color-scheme:dark}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:#e5e7eb;
+  background:
+    radial-gradient(1200px 800px at 10% 10%,#0e7490 0%,transparent 60%),
+    radial-gradient(900px 600px at 80% 50%,#0f172a 0%,#020617 90%);
+  background-attachment:fixed;
+  min-height:100vh;
+  padding:32px 20px;
+}
+.wrap{max-width:1100px;margin:0 auto}
+header{margin-bottom:24px;display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header h1{font-size:24px;font-weight:600;letter-spacing:-.01em;color:#22d3ee}
+header h1 small{color:#64748b;font-weight:400;font-size:13px;margin-left:8px}
+#updated{font-size:13px;color:#94a3b8}
+#updated.stale{color:#f87171}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{
+  padding:18px 16px;border-radius:14px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.10);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+.kpi .lbl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:6px}
+.kpi .val{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:#fde047}
+.kpi .val.ok{color:#4ade80;font-size:18px}
+.kpi .val.off{color:#f87171;font-size:18px}
+.card{
+  padding:20px 22px;border-radius:18px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.10);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  margin-bottom:16px;
+}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+.chart-header h2{font-size:14px;font-weight:600;letter-spacing:.02em;color:#e5e7eb;text-transform:uppercase}
+button{
+  background:#0e7490;color:#e5e7eb;
+  border:1px solid #155e75;border-radius:8px;
+  padding:6px 12px;font-size:12px;cursor:pointer;
+  transition:background .15s;
+}
+button:hover{background:#155e75}
+.chart-wrap{position:relative;height:380px}
+.hint{margin-top:10px;font-size:12px;color:#64748b}
+.peaks-card h2{font-size:13px;font-weight:600;letter-spacing:.04em;color:#e5e7eb;text-transform:uppercase;margin-bottom:10px}
+.peaks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.peak-row{
+  padding:10px 12px;border-radius:10px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  font-size:13px;
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+}
+.peak-row .d{color:#94a3b8;font-variant-numeric:tabular-nums}
+.peak-row .p{color:#fde047;font-weight:600;font-variant-numeric:tabular-nums}
+.peak-row .t{color:#64748b;font-size:11px;font-variant-numeric:tabular-nums}
+footer{margin-top:24px;text-align:center;font-size:11px;color:#64748b}
+footer a{color:#22d3ee;text-decoration:none}
+footer a:hover{text-decoration:underline}
+.error{color:#f87171}
+#status-banner{
+  display:none;
+  margin-bottom:18px;padding:14px 18px;border-radius:14px;
+  font-size:14px;font-weight:600;
+  border:1px solid;
+}
+#status-banner.show{display:block}
+#status-banner.warn{
+  color:#fde68a;background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.45);
+}
+#status-banner.err{
+  color:#fca5a5;background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.45);
+}
+#status-banner small{display:block;font-weight:400;opacity:.85;margin-top:4px;font-size:12px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Solaranlage <small>v1.23.0</small></h1>
+    <div id="updated">Lade …</div>
+  </header>
+
+  <div id="status-banner" role="status"></div>
+
+  <section class="kpis">
+    <div class="kpi"><span class="lbl">Aktuelle Leistung</span><span class="val" id="kpi-now">—</span></div>
+    <div class="kpi"><span class="lbl">Heute</span><span class="val" id="kpi-today">—</span></div>
+    <div class="kpi"><span class="lbl">Gesamt</span><span class="val" id="kpi-total">—</span></div>
+    <div class="kpi"><span class="lbl">Letzter Status</span><span class="val" id="kpi-status">—</span></div>
+  </section>
+
+  <section class="card">
+    <div class="chart-header">
+      <h2>Leistung — letzte 14 Tage</h2>
+      <button id="reset-zoom" type="button">Zoom zurücksetzen</button>
+    </div>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    <p class="hint">Mausrad / Pinch: Zoom · Klick + Ziehen: Verschieben · Hover: Wert pro Messpunkt</p>
+  </section>
+
+  <section class="card peaks-card">
+    <h2>Tages-Peaks</h2>
+    <div class="peaks-grid" id="peaks"></div>
+  </section>
+
+  <footer>
+    Snapshot wird alle 5 Minuten vom Pi neu erzeugt.
+    <a href="data.json">Rohdaten (JSON)</a>
+  </footer>
+</div>
+
+<script>
+const DATA_URL = 'data.json';
+
+function fmtPower(w) {
+  if (w == null) return '—';
+  if (w >= 1000) return (w / 1000).toFixed(2) + ' kW';
+  return Math.round(w) + ' W';
+}
+function fmtEnergy(e) {
+  if (e == null || e === '') return '—';
+  const v = Number(e);
+  return isFinite(v) ? v.toFixed(2) + ' kWh' : '—';
+}
+function fmtTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+}
+function fmtDate(yyyymmdd) {
+  // "2026-04-30" → "30.04."
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(yyyymmdd);
+  return m ? m[3] + '.' + m[2] + '.' : yyyymmdd;
+}
+
+async function loadData() {
+  let r;
+  try {
+    r = await fetch(DATA_URL + '?_=' + Date.now(), {cache: 'no-store'});
+  } catch (e) {
+    const err = new Error('Netzwerk-Fehler: ' + e.message);
+    err.kind = 'network';
+    throw err;
+  }
+  if (!r.ok) {
+    const err = new Error(r.status === 404
+      ? 'Nutzdaten-Datei (data.json) nicht gefunden.'
+      : 'HTTP ' + r.status + ' beim Laden der Nutzdaten.');
+    err.kind = r.status === 404 ? 'missing' : 'http';
+    throw err;
+  }
+  let text;
+  try {
+    text = await r.text();
+    return JSON.parse(text);
+  } catch (e) {
+    const err = new Error('Nutzdaten konnten nicht gelesen werden (defekte JSON-Datei).');
+    err.kind = 'parse';
+    throw err;
+  }
+}
+
+function showBanner(level, html) {
+  const b = document.getElementById('status-banner');
+  b.className = 'show ' + level;
+  b.innerHTML = html;
+}
+function hideBanner() {
+  const b = document.getElementById('status-banner');
+  b.className = '';
+  b.innerHTML = '';
+}
+
+let chart = null;
+
+function renderKPIs(d) {
+  document.getElementById('kpi-now').textContent = fmtPower(d.now_p);
+  document.getElementById('kpi-today').textContent = fmtEnergy(d.today_e);
+  document.getElementById('kpi-total').textContent = fmtEnergy(d.total_e);
+  const s = document.getElementById('kpi-status');
+  s.textContent = d.poll_ok ? 'OK' : 'offline';
+  s.className = 'val ' + (d.poll_ok ? 'ok' : 'off');
+  const u = document.getElementById('updated');
+  const updated = new Date(d.updated_iso);
+  const ageMin = (Date.now() - updated.getTime()) / 60000;
+  u.textContent = 'Aktualisiert: ' + updated.toLocaleString('de-DE');
+  u.classList.toggle('stale', ageMin > 15);
+}
+
+function renderChart(d) {
+  const data = d.samples.map(([t, w]) => ({x: t * 1000, y: w}));
+  if (chart) {
+    chart.data.datasets[0].data = data;
+    chart.update('none');
+    return;
+  }
+  const ctx = document.getElementById('chart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {datasets: [{
+      label: 'Leistung',
+      data: data,
+      borderColor: '#22d3ee',
+      backgroundColor: 'rgba(34,211,238,0.18)',
+      borderWidth: 1.6,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBorderColor: '#22d3ee',
+      pointHoverBackgroundColor: '#0f172a',
+      pointHoverBorderWidth: 2,
+      tension: 0,
+      fill: true,
+      spanGaps: false,
+    }]},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: {mode: 'nearest', axis: 'x', intersect: false},
+      scales: {
+        x: {
+          type: 'time',
+          time: {tooltipFormat: 'dd.MM.yyyy HH:mm', displayFormats: {hour: 'HH:mm', day: 'dd.MM.', week: 'dd.MM.'}},
+          ticks: {color: '#94a3b8', maxRotation: 0, autoSkipPadding: 18},
+          grid: {color: 'rgba(255,255,255,0.05)'},
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {color: '#94a3b8', callback: v => v + ' W'},
+          grid: {color: 'rgba(255,255,255,0.08)'},
+        },
+      },
+      plugins: {
+        legend: {display: false},
+        tooltip: {
+          backgroundColor: '#0f172a',
+          titleColor: '#22d3ee',
+          bodyColor: '#e5e7eb',
+          borderColor: '#374151',
+          borderWidth: 1,
+          padding: 10,
+          callbacks: {label: ctx => fmtPower(ctx.parsed.y)},
+        },
+        zoom: {
+          pan: {enabled: true, mode: 'x'},
+          zoom: {wheel: {enabled: true}, pinch: {enabled: true}, mode: 'x'},
+          limits: {x: {min: 'original', max: 'original'}},
+        },
+      },
+    },
+  });
+}
+
+function renderPeaks(d) {
+  const container = document.getElementById('peaks');
+  container.innerHTML = '';
+  if (!d.daily_peaks || !d.daily_peaks.length) {
+    container.innerHTML = '<div class="peak-row"><span class="d">noch keine Daten</span></div>';
+    return;
+  }
+  for (const p of d.daily_peaks) {
+    const row = document.createElement('div');
+    row.className = 'peak-row';
+    row.innerHTML =
+      '<span class="d">' + fmtDate(p.day) + '</span>' +
+      '<span class="p">' + fmtPower(p.peak_w) + '</span>' +
+      '<span class="t">' + fmtTime(p.peak_ts) + '</span>';
+    container.appendChild(row);
+  }
+}
+
+document.getElementById('reset-zoom').addEventListener('click', () => {
+  if (chart) chart.resetZoom();
+});
+
+async function tick() {
+  try {
+    const d = await loadData();
+    hideBanner();
+    renderKPIs(d);
+    renderChart(d);
+    renderPeaks(d);
+    // Stale check: data.json older than 15 min → soft warning, but render anyway.
+    const ageMin = (Date.now() - new Date(d.updated_iso).getTime()) / 60000;
+    if (ageMin > 15) {
+      showBanner('warn',
+        'Nutzdaten sind <strong>' + Math.round(ageMin) + ' Minuten alt</strong>.' +
+        '<small>Vermutlich keine neuen Pushes vom Pi (Netzwerk, Token, Service). ' +
+        'Die angezeigten Werte sind das letzte Bekannte.</small>');
+    }
+  } catch (e) {
+    console.error(e);
+    // Hülle bleibt erreichbar, KPIs/Chart behalten letzten Stand bzw. Platzhalter.
+    const msg = (e.kind === 'missing')
+      ? 'Nutzdaten gerade nicht verfügbar (data.json fehlt).'
+      : (e.kind === 'parse')
+        ? 'Nutzdaten unlesbar (JSON-Fehler).'
+        : 'Nutzdaten gerade nicht erreichbar.';
+    showBanner('err',
+      msg + '<small>Seite ist aufrufbar, aber kann gerade keine aktuellen Werte zeigen. ' +
+      'Erneuter Versuch in 60 Sekunden.</small>');
+    const u = document.getElementById('updated');
+    u.textContent = 'Daten-Fehler: ' + e.message;
+    u.className = 'error';
+  }
+}
+tick();
+setInterval(tick, 60000);
+</script>
+</body>
+</html>
