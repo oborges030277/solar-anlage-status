@@ -29,7 +29,7 @@ header h1{font-size:24px;font-weight:600;letter-spacing:-.01em;color:#22d3ee}
 header h1 small{color:#64748b;font-weight:400;font-size:13px;margin-left:8px}
 #updated{font-size:13px;color:#94a3b8}
 #updated.stale{color:#f87171}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
 @media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
 .kpi{
   padding:18px 16px;border-radius:14px;
@@ -101,7 +101,7 @@ footer a:hover{text-decoration:underline}
 <body>
 <div class="wrap">
   <header>
-    <h1>Solaranlage <small>v1.23.0</small></h1>
+    <h1>Solaranlage <small>v1.25.0</small></h1>
     <div id="updated">Lade …</div>
   </header>
 
@@ -112,6 +112,7 @@ footer a:hover{text-decoration:underline}
     <div class="kpi"><span class="lbl">Heute</span><span class="val" id="kpi-today">—</span></div>
     <div class="kpi"><span class="lbl">Gesamt</span><span class="val" id="kpi-total">—</span></div>
     <div class="kpi"><span class="lbl">Letzter Status</span><span class="val" id="kpi-status">—</span></div>
+    <div class="kpi"><span class="lbl">Stromversorgung</span><span class="val" id="kpi-power">—</span></div>
   </section>
 
   <section class="card">
@@ -205,6 +206,11 @@ function renderKPIs(d) {
   const s = document.getElementById('kpi-status');
   s.textContent = d.poll_ok ? 'OK' : 'offline';
   s.className = 'val ' + (d.poll_ok ? 'ok' : 'off');
+  const p = document.getElementById('kpi-power');
+  // textContent, never innerHTML: power_state carries a firmware string
+  // that the Pi did not author.
+  p.textContent = d.power_state || 'unbekannt';
+  p.className = 'val ' + (d.power_ok ? 'ok' : 'off');
   const u = document.getElementById('updated');
   const updated = new Date(d.updated_iso);
   const ageMin = (Date.now() - updated.getTime()) / 60000;
