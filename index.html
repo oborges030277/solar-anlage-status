@@ -101,7 +101,7 @@ footer a:hover{text-decoration:underline}
 <body>
 <div class="wrap">
   <header>
-    <h1>Solaranlage <small>v1.26.0</small></h1>
+    <h1>Solaranlage <small>v1.27.0</small></h1>
     <div id="updated">Lade …</div>
   </header>
 
@@ -136,6 +136,10 @@ footer a:hover{text-decoration:underline}
 </div>
 
 <script>
+// Filled in by publisher.render_index_html from pages_target.PAGE_STALE_AFTER_S:
+// one threshold for "this page is out of date", shared with the device.
+const STALE_AFTER_MIN = 90;
+
 const DATA_URL = 'data.json';
 
 function fmtPower(w) {
@@ -215,7 +219,7 @@ function renderKPIs(d) {
   const updated = new Date(d.updated_iso);
   const ageMin = (Date.now() - updated.getTime()) / 60000;
   u.textContent = 'Aktualisiert: ' + updated.toLocaleString('de-DE');
-  u.classList.toggle('stale', ageMin > 15);
+  u.classList.toggle('stale', ageMin > STALE_AFTER_MIN);
 }
 
 function renderChart(d) {
@@ -311,9 +315,10 @@ async function tick() {
     renderKPIs(d);
     renderChart(d);
     renderPeaks(d);
-    // Stale check: data.json older than 15 min → soft warning, but render anyway.
+    // Stale check against STALE_AFTER_MIN (filled in by the publisher from
+// pages_target.PAGE_STALE_AFTER_S): soft warning, but render anyway.
     const ageMin = (Date.now() - new Date(d.updated_iso).getTime()) / 60000;
-    if (ageMin > 15) {
+    if (ageMin > STALE_AFTER_MIN) {
       showBanner('warn',
         'Nutzdaten sind <strong>' + Math.round(ageMin) + ' Minuten alt</strong>.' +
         '<small>Vermutlich keine neuen Pushes vom Pi (Netzwerk, Token, Service). ' +
