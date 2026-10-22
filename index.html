@@ -101,7 +101,7 @@ footer a:hover{text-decoration:underline}
 <body>
 <div class="wrap">
   <header>
-    <h1>Solaranlage <small>v1.27.0</small></h1>
+    <h1>Solaranlage <small>v1.28.0</small></h1>
     <div id="updated">Lade …</div>
   </header>
 
@@ -208,8 +208,8 @@ function renderKPIs(d) {
   document.getElementById('kpi-today').textContent = fmtEnergy(d.today_e);
   document.getElementById('kpi-total').textContent = fmtEnergy(d.total_e);
   const s = document.getElementById('kpi-status');
-  s.textContent = d.poll_ok ? 'OK' : 'offline';
-  s.className = 'val ' + (d.poll_ok ? 'ok' : 'off');
+  s.textContent = d.measurement_ok ? 'OK' : 'offline';
+  s.className = 'val ' + (d.measurement_ok ? 'ok' : 'off');
   const p = document.getElementById('kpi-power');
   // textContent, never innerHTML: power_state carries a firmware string
   // that the Pi did not author.
