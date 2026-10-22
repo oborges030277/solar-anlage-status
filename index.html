@@ -101,7 +101,7 @@ footer a:hover{text-decoration:underline}
 <body>
 <div class="wrap">
   <header>
-    <h1>Solaranlage <small>v1.28.0</small></h1>
+    <h1>Solaranlage <small>v1.29.0</small></h1>
     <div id="updated">Lade …</div>
   </header>
 
@@ -113,6 +113,7 @@ footer a:hover{text-decoration:underline}
     <div class="kpi"><span class="lbl">Gesamt</span><span class="val" id="kpi-total">—</span></div>
     <div class="kpi"><span class="lbl">Letzter Status</span><span class="val" id="kpi-status">—</span></div>
     <div class="kpi"><span class="lbl">Stromversorgung</span><span class="val" id="kpi-power">—</span></div>
+    <div class="kpi" id="kpi-config-row" hidden><span class="lbl">Konfiguration</span><span class="val off" id="kpi-config">—</span></div>
   </section>
 
   <section class="card">
@@ -215,6 +216,13 @@ function renderKPIs(d) {
   // that the Pi did not author.
   p.textContent = d.power_state || 'unbekannt';
   p.className = 'val ' + (d.power_ok ? 'ok' : 'off');
+  // Only shown when something is wrong, so a healthy page keeps five KPIs.
+  // textContent for the same reason as power_state above: the Pi did not
+  // author this string either. It never carries the path of the kept copy --
+  // that belongs on the local interfaces, not on a public page.
+  const c = document.getElementById('kpi-config');
+  document.getElementById('kpi-config-row').hidden = !d.config_damage;
+  c.textContent = d.config_damage || '';
   const u = document.getElementById('updated');
   const updated = new Date(d.updated_iso);
   const ageMin = (Date.now() - updated.getTime()) / 60000;
