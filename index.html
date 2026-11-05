@@ -101,7 +101,7 @@ footer a:hover{text-decoration:underline}
 <body>
 <div class="wrap">
   <header>
-    <h1>Solaranlage <small>v1.30.0</small></h1>
+    <h1>Solaranlage <small>v1.31.0</small></h1>
     <div id="updated">Lade …</div>
   </header>
 
@@ -143,11 +143,26 @@ const STALE_AFTER_MIN = 90;
 
 const DATA_URL = 'data.json';
 
+// The one browser copy of power_format.format_power, shared by the web UI and
+// the published page; power_format.javascript() fills the two constants in.
+// It also writes the dash for a missing value, chart_view.format_power_reading's
+// job on the Python side.
+// Integer arithmetic on purpose -- toFixed rounds a tie up where Python rounds
+// it to even, and 1250 W read 1.2 kW on the panel, 1.3 kW on the page.
+// tests/test_one_home_per_value.py runs this file in Node against Python.
+const KW_DECIMALS = 1;
+const W_PER_KW = 1000;
+
 function fmtPower(w) {
   if (w == null) return '—';
-  if (w >= 1000) return (w / 1000).toFixed(2) + ' kW';
-  return Math.round(w) + ' W';
+  const wholeWatts = Math.floor(w + 0.5);
+  if (wholeWatts < W_PER_KW) return wholeWatts + ' W';
+  const scale = 10 ** KW_DECIMALS;
+  const steps = Math.floor(w / (W_PER_KW / scale) + 0.5);
+  const fraction = String(steps % scale).padStart(KW_DECIMALS, '0');
+  return Math.floor(steps / scale) + '.' + fraction + ' kW';
 }
+
 function fmtEnergy(e) {
   if (e == null || e === '') return '—';
   const v = Number(e);
